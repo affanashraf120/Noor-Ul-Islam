@@ -1,7 +1,6 @@
-/* eslint-disable react/no-danger */
-import React from 'react';
-import { Card, CardBody, Badge } from 'reactstrap';
-import { Colxx } from '../common/CustomBootstrap';
+import React from "react";
+import { Card, CardBody, Badge } from "reactstrap";
+import { Colxx } from "../../components/common/CustomBootstrap";
 
 const SurveyDetailCard = ({ survey }) => {
   return (
@@ -16,7 +15,7 @@ const SurveyDetailCard = ({ survey }) => {
           <p
             className="mb-3"
             dangerouslySetInnerHTML={{
-              __html: survey.detail,
+              __html: survey.detail
             }}
           />
 
@@ -38,4 +37,4 @@ const SurveyDetailCard = ({ survey }) => {
   );
 };
 
-export default React.memo(SurveyDetailCard);
+export default SurveyDetailCard;

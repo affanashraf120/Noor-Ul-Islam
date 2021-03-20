@@ -1,7 +1,6 @@
-/* eslint-disable react/no-array-index-key */
-import React, { useEffect, useState } from 'react';
-import { connect } from 'react-redux';
-import { injectIntl } from 'react-intl';
+import React, { Component, Fragment } from "react";
+import { connect } from "react-redux";
+import { injectIntl } from "react-intl";
 import {
   Row,
   Button,
@@ -11,272 +10,289 @@ import {
   DropdownMenu,
   Collapse,
   ButtonDropdown,
-  CustomInput,
-} from 'reactstrap';
+  CustomInput
+} from "reactstrap";
 
-import IntlMessages from '../../../helpers/IntlMessages';
-import { Colxx, Separator } from '../../../components/common/CustomBootstrap';
-import Breadcrumb from '../../../containers/navs/Breadcrumb';
+import IntlMessages from "../../../helpers/IntlMessages";
+import { Colxx, Separator } from "../../../components/common/CustomBootstrap";
+import Breadcrumb from "../../../containers/navs/Breadcrumb";
 
 import {
   getSurveyList,
   getSurveyListWithOrder,
   getSurveyListSearch,
-  selectedSurveyItemsChange,
-} from '../../../redux/actions';
+  selectedSurveyItemsChange
+} from "../../../redux/actions";
 
-import SurveyListItem from '../../../components/applications/SurveyListItem';
-import AddNewSurveyModal from '../../../containers/applications/AddNewSurveyModal';
-import SurveyApplicationMenu from '../../../containers/applications/SurveyApplicationMenu';
+import SurveyListItem from "../../../components/applications/SurveyListItem";
+import AddNewSurveyModal from "../../../containers/applications/AddNewSurveyModal";
+import SurveyApplicationMenu from "../../../containers/applications/SurveyApplicationMenu";
 
-const getIndex = (value, arr, prop) => {
-  for (let i = 0; i < arr.length; i += 1) {
-    if (arr[i][prop] === value) {
-      return i;
-    }
-  }
-  return -1;
-};
+class SurveyApp extends Component {
+  constructor(props) {
+    super(props);
 
-const SurveyApp = ({
-  match,
-  intl,
-  surveyItems,
-  searchKeyword,
-  loading,
-  orderColumn,
-  orderColumns,
-  selectedItems,
+    this.state = {
+      dropdownSplitOpen: false,
+      modalOpen: false,
+      lastChecked: null,
 
-  getSurveyListAction,
-  getSurveyListWithOrderAction,
-  getSurveyListSearchAction,
-  selectedSurveyItemsChangeAction,
-}) => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [dropdownSplitOpen, setDropdownSplitOpen] = useState(false);
-  const [lastChecked, setLastChecked] = useState(null);
-  const [displayOptionsIsOpen, setDisplayOptionsIsOpen] = useState(false);
-
-  useEffect(() => {
-    document.body.classList.add('right-menu');
-    getSurveyListAction();
-
-    return () => {
-      document.body.classList.remove('right-menu');
+      title: "",
+      label: {},
+      category: {},
+      status: "ACTIVE",
+      displayOptionsIsOpen: false
     };
-  }, [getSurveyListAction]);
+  }
+  componentDidMount() {
+    this.props.getSurveyList();
+  }
 
-  const handleCheckChange = (event, id) => {
-    if (lastChecked == null) {
-      setLastChecked(id);
-    }
+  toggleDisplayOptions = () => {
+    this.setState({ displayOptionsIsOpen: !this.state.displayOptionsIsOpen });
+  };
 
-    let selectedList = Object.assign([], selectedItems);
-    if (selectedList.includes(id)) {
-      selectedList = selectedList.filter((x) => x !== id);
-    } else {
-      selectedList.push(id);
-    }
-    selectedSurveyItemsChangeAction(selectedList);
+  toggleModal = () => {
+    this.setState({
+      modalOpen: !this.state.modalOpen
+    });
+  };
 
-    if (event.shiftKey) {
-      let items = surveyItems;
-      const start = getIndex(id, items, 'id');
-      const end = getIndex(lastChecked, items, 'id');
-      items = items.slice(Math.min(start, end), Math.max(start, end) + 1);
-      selectedList.push(
-        ...items.map((item) => {
-          return item.id;
-        })
-      );
-      selectedList = Array.from(new Set(selectedList));
-      selectedSurveyItemsChangeAction(selectedList);
+  toggleSplit = () => {
+    this.setState(prevState => ({
+      dropdownSplitOpen: !prevState.dropdownSplitOpen
+    }));
+  };
+
+  changeOrderBy = column => {
+    this.props.getSurveyListWithOrder(column);
+  };
+
+  handleKeyPress = e => {
+    if (e.key === "Enter") {
+      this.props.getSurveyListSearch(e.target.value);
     }
   };
 
-  const handleChangeSelectAll = () => {
-    if (loading) {
-      if (selectedItems.length >= surveyItems.length) {
-        selectedSurveyItemsChangeAction([]);
+  handleCheckChange = (event, id) => {
+    if (this.state.lastChecked == null) {
+      this.setState({
+        lastChecked: id
+      });
+    }
+
+    let selectedItems = Object.assign(
+      [],
+      this.props.surveyListApp.selectedItems
+    );
+    if (selectedItems.includes(id)) {
+      selectedItems = selectedItems.filter(x => x !== id);
+    } else {
+      selectedItems.push(id);
+    }
+    this.props.selectedSurveyItemsChange(selectedItems);
+
+    if (event.shiftKey) {
+      var items = this.props.surveyListApp.surveyItems;
+      var start = this.getIndex(id, items, "id");
+      var end = this.getIndex(this.state.lastChecked, items, "id");
+      items = items.slice(Math.min(start, end), Math.max(start, end) + 1);
+      selectedItems.push(
+        ...items.map(item => {
+          return item.id;
+        })
+      );
+      selectedItems = Array.from(new Set(selectedItems));
+      this.props.selectedSurveyItemsChange(selectedItems);
+    }
+    return;
+  };
+  handleChangeSelectAll = () => {
+    if (this.props.surveyListApp.loading) {
+      if (
+        this.props.surveyListApp.selectedItems.length >=
+        this.props.surveyListApp.surveyItems.length
+      ) {
+        this.props.selectedSurveyItemsChange([]);
       } else {
-        selectedSurveyItemsChangeAction(surveyItems.map((x) => x.id));
+        this.props.selectedSurveyItemsChange(
+          this.props.surveyListApp.surveyItems.map(x => x.id)
+        );
       }
     }
   };
 
-  const { messages } = intl;
+  getIndex(value, arr, prop) {
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i][prop] === value) {
+        return i;
+      }
+    }
+    return -1;
+  }
+  render() {
+    const {
+      surveyItems,
+      searchKeyword,
+      loading,
+      orderColumn,
+      orderColumns,
+      selectedItems
+    } = this.props.surveyListApp;
+    const { messages } = this.props.intl;
+    const { modalOpen } = this.state;
+    return (
+      <Fragment>
+        <Row className="app-row survey-app">
+          <Colxx xxs="12">
+            <div className="mb-2">
+              <h1>
+                <IntlMessages id="menu.survey" />
+              </h1>
 
-  return (
-    <>
-      <Row className="app-row survey-app">
-        <Colxx xxs="12">
-          <div className="mb-2">
-            <h1>
-              <IntlMessages id="menu.survey" />
-            </h1>
+              {loading && (
+                <div className="text-zero top-right-button-container">
+                  <Button
+                    color="primary"
+                    size="lg"
+                    className="top-right-button mr-1"
+                    onClick={this.toggleModal}
+                  >
+                    <IntlMessages id="survey.add-new" />
+                  </Button>
+                  <ButtonDropdown
+                    isOpen={this.state.dropdownSplitOpen}
+                    toggle={this.toggleSplit}
+                  >
+                    <div className="btn btn-primary btn-lg pl-4 pr-0 check-button check-all">
+                      <CustomInput
+                        className="custom-checkbox mb-0 d-inline-block"
+                        type="checkbox"
+                        id="checkAll"
+                        checked={selectedItems.length >= surveyItems.length}
+                        onClick={() => this.handleChangeSelectAll()}
+                        onChange={() => this.handleChangeSelectAll()}
+                        label={
+                          <span
+                            className={`custom-control-label ${
+                              selectedItems.length > 0 &&
+                              selectedItems.length < surveyItems.length
+                                ? "indeterminate"
+                                : ""
+                            }`}
+                          />
+                        }
+                      />
+                    </div>
+                    <DropdownToggle
+                      caret
+                      color="primary"
+                      className="dropdown-toggle-split btn-lg"
+                    />
+                    <DropdownMenu right>
+                      <DropdownItem>
+                        <IntlMessages id="survey.delete" />
+                      </DropdownItem>
+                      <DropdownItem>
+                        <IntlMessages id="survey.another-action" />
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </ButtonDropdown>
+                </div>
+              )}
 
-            {loading && (
-              <div className="text-zero top-right-button-container">
-                <Button
-                  color="primary"
-                  size="lg"
-                  className="top-right-button mr-1"
-                  onClick={() => setModalOpen(true)}
-                >
-                  <IntlMessages id="survey.add-new" />
-                </Button>
-                <ButtonDropdown
-                  isOpen={dropdownSplitOpen}
-                  toggle={() => setDropdownSplitOpen(!dropdownSplitOpen)}
-                >
-                  <div className="btn btn-primary btn-lg pl-4 pr-0 check-button check-all">
-                    <CustomInput
-                      className="custom-checkbox mb-0 d-inline-block"
-                      type="checkbox"
-                      id="checkAll"
-                      checked={selectedItems.length >= surveyItems.length}
-                      onClick={() => handleChangeSelectAll()}
-                      onChange={() => handleChangeSelectAll()}
-                      label={
-                        <span
-                          className={`custom-control-label ${
-                            selectedItems.length > 0 &&
-                            selectedItems.length < surveyItems.length
-                              ? 'indeterminate'
-                              : ''
-                          }`}
-                        />
-                      }
+              <Breadcrumb match={this.props.match} />
+            </div>
+
+            <div className="mb-2">
+              <Button
+                color="empty"
+                className="pt-0 pl-0 d-inline-block d-md-none"
+                onClick={this.toggleDisplayOptions}>
+                <IntlMessages id="survey.display-options" />{" "}
+                <i className="simple-icon-arrow-down align-middle" />
+              </Button>
+
+              <Collapse
+                id="displayOptions"
+                className="d-md-block mb-2"
+                isOpen={this.state.displayOptionsIsOpen}>
+                <div className="d-block d-md-inline-block">
+                  <UncontrolledDropdown className="mr-1 float-md-left btn-group mb-1">
+                    <DropdownToggle caret color="outline-dark" size="xs">
+                      <IntlMessages id="survey.orderby" />
+                      {orderColumn ? orderColumn.label : ""}
+                    </DropdownToggle>
+                    <DropdownMenu>
+                      {orderColumns.map((o, index) => {
+                        return (
+                          <DropdownItem
+                            key={index}
+                            onClick={() => this.changeOrderBy(o.column)}
+                          >
+                            {o.label}
+                          </DropdownItem>
+                        );
+                      })}
+                    </DropdownMenu>
+                  </UncontrolledDropdown>
+                  <div className="search-sm d-inline-block float-md-left mr-1 mb-1 align-top">
+                    <input
+                      type="text"
+                      name="keyword"
+                      id="search"
+                      placeholder={messages["menu.search"]}
+                      defaultValue={searchKeyword}
+                      onKeyPress={e => this.handleKeyPress(e)}
                     />
                   </div>
-                  <DropdownToggle
-                    caret
-                    color="primary"
-                    className="dropdown-toggle-split btn-lg"
-                  />
-                  <DropdownMenu right>
-                    <DropdownItem>
-                      <IntlMessages id="survey.delete" />
-                    </DropdownItem>
-                    <DropdownItem>
-                      <IntlMessages id="survey.another-action" />
-                    </DropdownItem>
-                  </DropdownMenu>
-                </ButtonDropdown>
-              </div>
-            )}
-
-            <Breadcrumb match={match} />
-          </div>
-
-          <div className="mb-2">
-            <Button
-              color="empty"
-              className="pt-0 pl-0 d-inline-block d-md-none"
-              onClick={() => {
-                setDisplayOptionsIsOpen(!displayOptionsIsOpen);
-              }}
-            >
-              <IntlMessages id="survey.display-options" />{' '}
-              <i className="simple-icon-arrow-down align-middle" />
-            </Button>
-
-            <Collapse
-              id="displayOptions"
-              className="d-md-block mb-2"
-              isOpen={displayOptionsIsOpen}
-            >
-              <div className="d-block d-md-inline-block">
-                <UncontrolledDropdown className="mr-1 float-md-left btn-group mb-1">
-                  <DropdownToggle caret color="outline-dark" size="xs">
-                    <IntlMessages id="survey.orderby" />
-                    {orderColumn ? orderColumn.label : ''}
-                  </DropdownToggle>
-                  <DropdownMenu>
-                    {orderColumns.map((o, index) => {
-                      return (
-                        <DropdownItem
-                          key={index}
-                          onClick={() => getSurveyListWithOrderAction(o.column)}
-                        >
-                          {o.label}
-                        </DropdownItem>
-                      );
-                    })}
-                  </DropdownMenu>
-                </UncontrolledDropdown>
-                <div className="search-sm d-inline-block float-md-left mr-1 mb-1 align-top">
-                  <input
-                    type="text"
-                    name="keyword"
-                    id="search"
-                    placeholder={messages['menu.search']}
-                    defaultValue={searchKeyword}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        getSurveyListSearchAction(e.target.value);
-                      }
-                    }}
-                  />
                 </div>
-              </div>
-            </Collapse>
-          </div>
-          <Separator className="mb-5" />
-          <Row>
-            {loading ? (
-              surveyItems.map((item, index) => {
-                return (
-                  <SurveyListItem
-                    key={`todo_item_${index}`}
-                    item={item}
-                    handleCheckChange={handleCheckChange}
-                    isSelected={
-                      loading ? selectedItems.includes(item.id) : false
-                    }
-                  />
-                );
-              })
-            ) : (
-              <div className="loading" />
-            )}
-          </Row>
-        </Colxx>
-      </Row>
+              </Collapse>
+            </div>
+            <Separator className="mb-5" />
+            <Row>
+              {loading ? (
+                surveyItems.map((item, index) => {
+                  return (
+                    <SurveyListItem
+                      key={`todo_item_${index}`}
+                      item={item}
+                      handleCheckChange={this.handleCheckChange}
+                      isSelected={
+                        loading ? selectedItems.includes(item.id) : false
+                      }
+                    />
+                  );
+                })
+              ) : (
+                <div className="loading" />
+              )}
+            </Row>
+          </Colxx>
+        </Row>
 
-      {loading && <SurveyApplicationMenu />}
-      <AddNewSurveyModal
-        toggleModal={() => setModalOpen(!modalOpen)}
-        modalOpen={modalOpen}
-      />
-    </>
-  );
-};
+        {loading && <SurveyApplicationMenu />}
+        <AddNewSurveyModal
+          toggleModal={this.toggleModal}
+          modalOpen={modalOpen}
+        />
+      </Fragment>
+    );
+  }
+}
 const mapStateToProps = ({ surveyListApp }) => {
-  const {
-    surveyItems,
-    searchKeyword,
-    loading,
-    orderColumn,
-    orderColumns,
-    selectedItems,
-  } = surveyListApp;
-
   return {
-    surveyItems,
-    searchKeyword,
-    loading,
-    orderColumn,
-    orderColumns,
-    selectedItems,
+    surveyListApp
   };
 };
 export default injectIntl(
-  connect(mapStateToProps, {
-    getSurveyListAction: getSurveyList,
-    getSurveyListWithOrderAction: getSurveyListWithOrder,
-    getSurveyListSearchAction: getSurveyListSearch,
-    selectedSurveyItemsChangeAction: selectedSurveyItemsChange,
-  })(SurveyApp)
+  connect(
+    mapStateToProps,
+    {
+      getSurveyList,
+      getSurveyListWithOrder,
+      getSurveyListSearch,
+      selectedSurveyItemsChange
+    }
+  )(SurveyApp)
 );

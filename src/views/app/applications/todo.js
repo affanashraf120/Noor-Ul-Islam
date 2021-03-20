@@ -1,5 +1,4 @@
-/* eslint-disable react/no-array-index-key */
-import React, { useState, useEffect } from 'react';
+import React, { Component, Fragment } from "react";
 import {
   Row,
   Button,
@@ -9,262 +8,281 @@ import {
   DropdownMenu,
   Collapse,
   ButtonDropdown,
-  CustomInput,
-} from 'reactstrap';
-import { injectIntl } from 'react-intl';
-import { connect } from 'react-redux';
+  CustomInput
+} from "reactstrap";
+import { injectIntl } from "react-intl";
+import { connect } from "react-redux";
 
-import IntlMessages from '../../../helpers/IntlMessages';
-import { Colxx, Separator } from '../../../components/common/CustomBootstrap';
-import Breadcrumb from '../../../containers/navs/Breadcrumb';
+import IntlMessages from "../../../helpers/IntlMessages";
+import { Colxx, Separator } from "../../../components/common/CustomBootstrap";
+import Breadcrumb from "../../../containers/navs/Breadcrumb";
 
 import {
   getTodoList,
   getTodoListWithOrder,
   getTodoListSearch,
-  selectedTodoItemsChange,
-} from '../../../redux/actions';
-import TodoListItem from '../../../components/applications/TodoListItem';
-import AddNewTodoModal from '../../../containers/applications/AddNewTodoModal';
-import TodoApplicationMenu from '../../../containers/applications/TodoApplicationMenu';
+  selectedTodoItemsChange
+} from "../../../redux/actions";
+import TodoListItem from "../../../components/applications/TodoListItem";
+import AddNewTodoModal from "../../../containers/applications/AddNewTodoModal";
+import TodoApplicationMenu from "../../../containers/applications/TodoApplicationMenu";
 
-const getIndex = (value, arr, prop) => {
-  for (let i = 0; i < arr.length; i += 1) {
-    if (arr[i][prop] === value) {
-      return i;
-    }
-  }
-  return -1;
-};
+class TodoApp extends Component {
+  constructor(props) {
+    super(props);
 
-const TodoApp = ({
-  match,
-  intl,
-  todoItems,
-  searchKeyword,
-  loading,
-  orderColumn,
-  orderColumns,
-  selectedItems,
-  getTodoListAction,
-  getTodoListWithOrderAction,
-  getTodoListSearchAction,
-  selectedTodoItemsChangeAction,
-}) => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [dropdownSplitOpen, setDropdownSplitOpen] = useState(false);
-  const [displayOptionsIsOpen, setDisplayOptionsIsOpen] = useState(false);
-  const [lastChecked, setLastChecked] = useState(null);
+    this.state = {
+      dropdownSplitOpen: false,
+      modalOpen: false,
+      lastChecked: null,
 
-  useEffect(() => {
-    document.body.classList.add('right-menu');
-    getTodoListAction();
-
-    return () => {
-      document.body.classList.remove('right-menu');
+      displayOptionsIsOpen: false
     };
-  }, [getTodoListAction]);
+  }
 
-  const handleCheckChange = (event, id) => {
-    if (lastChecked == null) {
-      setLastChecked(id);
-    }
+  componentDidMount() {
+    this.props.getTodoList();
+  }
 
-    let selectedList = Object.assign([], selectedItems);
-    if (selectedList.includes(id)) {
-      selectedList = selectedList.filter((x) => x !== id);
-    } else {
-      selectedList.push(id);
-    }
-    selectedTodoItemsChangeAction(selectedList);
+  toggleDisplayOptions = () => {
+    this.setState({ displayOptionsIsOpen: !this.state.displayOptionsIsOpen });
+  };
 
-    if (event.shiftKey) {
-      let items = todoItems;
-      const start = getIndex(id, items, 'id');
-      const end = getIndex(lastChecked, items, 'id');
-      items = items.slice(Math.min(start, end), Math.max(start, end) + 1);
-      selectedList.push(
-        ...items.map((item) => {
-          return item.id;
-        })
-      );
-      selectedList = Array.from(new Set(selectedList));
-      selectedTodoItemsChangeAction(selectedList);
+  toggleModal = () => {
+    this.setState({
+      modalOpen: !this.state.modalOpen
+    });
+  };
+
+  toggleSplit = () => {
+    this.setState(prevState => ({
+      dropdownSplitOpen: !prevState.dropdownSplitOpen
+    }));
+  };
+
+  changeOrderBy = column => {
+    this.props.getTodoListWithOrder(column);
+  };
+
+  handleKeyPress = e => {
+    if (e.key === "Enter") {
+      this.props.getTodoListSearch(e.target.value);
     }
   };
 
-  const handleChangeSelectAll = () => {
-    if (loading) {
-      if (selectedItems.length >= todoItems.length) {
-        selectedTodoItemsChangeAction([]);
+  handleCheckChange = (event, id) => {
+    if (this.state.lastChecked == null) {
+      this.setState({
+        lastChecked: id
+      });
+    }
+
+    let selectedItems = Object.assign([], this.props.todoApp.selectedItems);
+    if (selectedItems.includes(id)) {
+      selectedItems = selectedItems.filter(x => x !== id);
+    } else {
+      selectedItems.push(id);
+    }
+    this.props.selectedTodoItemsChange(selectedItems);
+
+    if (event.shiftKey) {
+      var items = this.props.todoApp.todoItems;
+      var start = this.getIndex(id, items, "id");
+      var end = this.getIndex(this.state.lastChecked, items, "id");
+      items = items.slice(Math.min(start, end), Math.max(start, end) + 1);
+      selectedItems.push(
+        ...items.map(item => {
+          return item.id;
+        })
+      );
+      selectedItems = Array.from(new Set(selectedItems));
+      this.props.selectedTodoItemsChange(selectedItems);
+    }
+    return;
+  };
+
+  handleChangeSelectAll = () => {
+    if (this.props.todoApp.loading) {
+      if (
+        this.props.todoApp.selectedItems.length >=
+        this.props.todoApp.todoItems.length
+      ) {
+        this.props.selectedTodoItemsChange([]);
       } else {
-        selectedTodoItemsChangeAction(todoItems.map((x) => x.id));
+        this.props.selectedTodoItemsChange(
+          this.props.todoApp.todoItems.map(x => x.id)
+        );
       }
     }
   };
 
-  const { messages } = intl;
+  getIndex(value, arr, prop) {
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i][prop] === value) {
+        return i;
+      }
+    }
+    return -1;
+  }
 
-  return (
-    <>
-      <Row className="app-row survey-app">
-        <Colxx xxs="12">
-          <div className="mb-2">
-            <h1>
-              <IntlMessages id="menu.todo" />
-            </h1>
-            {loading && (
-              <div className="text-zero top-right-button-container">
-                <Button
-                  color="primary"
-                  size="lg"
-                  className="top-right-button"
-                  onClick={() => setModalOpen(true)}
-                >
-                  <IntlMessages id="todo.add-new" />
-                </Button>{' '}
-                <ButtonDropdown
-                  isOpen={dropdownSplitOpen}
-                  toggle={() => setDropdownSplitOpen(!dropdownSplitOpen)}
-                >
-                  <div className="btn btn-primary btn-lg pl-4 pr-0 check-button check-all">
-                    <CustomInput
-                      className="custom-checkbox mb-0 d-inline-block"
-                      type="checkbox"
-                      id="checkAll"
-                      checked={selectedItems.length >= todoItems.length}
-                      onClick={() => handleChangeSelectAll()}
-                      onChange={() => handleChangeSelectAll()}
-                      label={
-                        <span
-                          className={`custom-control-label ${
-                            selectedItems.length > 0 &&
-                            selectedItems.length < todoItems.length
-                              ? 'indeterminate'
-                              : ''
-                          }`}
-                        />
-                      }
+  render() {
+    const {
+      todoItems,
+      searchKeyword,
+      loading,
+      orderColumn,
+      orderColumns,
+      selectedItems
+    } = this.props.todoApp;
+
+    const { messages } = this.props.intl;
+
+    const { modalOpen } = this.state;
+    return (
+      <Fragment>
+        <Row className="app-row survey-app">
+          <Colxx xxs="12">
+            <div className="mb-2">
+              <h1>
+                <IntlMessages id="menu.todo" />
+              </h1>
+              {loading && (
+                <div className="text-zero top-right-button-container">
+                  <Button
+                    color="primary"
+                    size="lg"
+                    className="top-right-button"
+                    onClick={this.toggleModal}
+                  >
+                    <IntlMessages id="todo.add-new" />
+                  </Button>{" "}
+                  <ButtonDropdown
+                    isOpen={this.state.dropdownSplitOpen}
+                    toggle={this.toggleSplit}
+                  >
+                    <div className="btn btn-primary btn-lg pl-4 pr-0 check-button check-all">
+                      <CustomInput
+                        className="custom-checkbox mb-0 d-inline-block"
+                        type="checkbox"
+                        id="checkAll"
+                        checked={
+                          selectedItems.length >= todoItems.length
+                        }
+                        onClick={() => this.handleChangeSelectAll()}
+                        onChange={() => this.handleChangeSelectAll()}
+                        label={
+                          <span
+                            className={`custom-control-label ${
+                              selectedItems.length > 0 &&
+                              selectedItems.length < todoItems.length
+                                ? "indeterminate"
+                                : ""
+                            }`}
+                          />
+                        }
+                      />
+                    </div>
+                    <DropdownToggle
+                      caret
+                      color="primary"
+                      className="dropdown-toggle-split btn-lg"
+                    />
+                    <DropdownMenu right>
+                      <DropdownItem>
+                        <IntlMessages id="todo.action" />
+                      </DropdownItem>
+                      <DropdownItem>
+                        <IntlMessages id="todo.another-action" />
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </ButtonDropdown>
+                </div>
+              )}
+              <Breadcrumb match={this.props.match} />
+            </div>
+
+            <div className="mb-2">
+              <Button
+                color="empty"
+                className="pt-0 pl-0 d-inline-block d-md-none"
+                onClick={this.toggleDisplayOptions}>
+                <IntlMessages id="todo.display-options" />{" "}
+                <i className="simple-icon-arrow-down align-middle" />
+              </Button>
+              <Collapse
+                id="displayOptions"
+                className="d-md-block"
+                isOpen={this.state.displayOptionsIsOpen}>
+                <div className="d-block mb-2 d-md-inline-block">
+                  <UncontrolledDropdown className="mr-1 float-md-left btn-group mb-1">
+                    <DropdownToggle caret color="outline-dark" size="xs">
+                      <IntlMessages id="todo.orderby" />
+                      {orderColumn ? orderColumn.label : ""}
+                    </DropdownToggle>
+                    <DropdownMenu>
+                      {orderColumns.map((o, index) => {
+                        return (
+                          <DropdownItem
+                            key={index}
+                            onClick={() => this.changeOrderBy(o.column)}
+                          >
+                            {o.label}
+                          </DropdownItem>
+                        );
+                      })}
+                    </DropdownMenu>
+                  </UncontrolledDropdown>
+                  <div className="search-sm d-inline-block float-md-left mr-1 mb-1 align-top">
+                    <input
+                      type="text"
+                      name="keyword"
+                      id="search"
+                      placeholder={messages["menu.search"]}
+                      defaultValue={searchKeyword}
+                      onKeyPress={e => this.handleKeyPress(e)}
                     />
                   </div>
-                  <DropdownToggle
-                    caret
-                    color="primary"
-                    className="dropdown-toggle-split btn-lg"
-                  />
-                  <DropdownMenu right>
-                    <DropdownItem>
-                      <IntlMessages id="todo.action" />
-                    </DropdownItem>
-                    <DropdownItem>
-                      <IntlMessages id="todo.another-action" />
-                    </DropdownItem>
-                  </DropdownMenu>
-                </ButtonDropdown>
-              </div>
-            )}
-            <Breadcrumb match={match} />
-          </div>
-
-          <div className="mb-2">
-            <Button
-              color="empty"
-              className="pt-0 pl-0 d-inline-block d-md-none"
-              onClick={() => setDisplayOptionsIsOpen(!displayOptionsIsOpen)}
-            >
-              <IntlMessages id="todo.display-options" />{' '}
-              <i className="simple-icon-arrow-down align-middle" />
-            </Button>
-            <Collapse
-              id="displayOptions"
-              className="d-md-block"
-              isOpen={displayOptionsIsOpen}
-            >
-              <div className="d-block mb-2 d-md-inline-block">
-                <UncontrolledDropdown className="mr-1 float-md-left btn-group mb-1">
-                  <DropdownToggle caret color="outline-dark" size="xs">
-                    <IntlMessages id="todo.orderby" />
-                    {orderColumn ? orderColumn.label : ''}
-                  </DropdownToggle>
-                  <DropdownMenu>
-                    {orderColumns.map((o, index) => {
-                      return (
-                        <DropdownItem
-                          key={index}
-                          onClick={() => getTodoListWithOrderAction(o.column)}
-                        >
-                          {o.label}
-                        </DropdownItem>
-                      );
-                    })}
-                  </DropdownMenu>
-                </UncontrolledDropdown>
-                <div className="search-sm d-inline-block float-md-left mr-1 mb-1 align-top">
-                  <input
-                    type="text"
-                    name="keyword"
-                    id="search"
-                    placeholder={messages['menu.search']}
-                    defaultValue={searchKeyword}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        getTodoListSearchAction(e.target.value);
-                      }
-                    }}
-                  />
                 </div>
-              </div>
-            </Collapse>
-          </div>
-          <Separator className="mb-5" />
-          <Row>
-            {loading ? (
-              todoItems.map((item, index) => (
-                <TodoListItem
-                  key={`todo_item_${index}`}
-                  item={item}
-                  handleCheckChange={handleCheckChange}
-                  isSelected={loading ? selectedItems.includes(item.id) : false}
-                />
-              ))
-            ) : (
-              <div className="loading" />
-            )}
-          </Row>
-        </Colxx>
-      </Row>
-      {loading && <TodoApplicationMenu />}
-      <AddNewTodoModal
-        toggleModal={() => setModalOpen(!modalOpen)}
-        modalOpen={modalOpen}
-      />
-    </>
-  );
-};
-
+              </Collapse>
+            </div>
+            <Separator className="mb-5" />
+            <Row>
+              {loading ? (
+                todoItems.map((item, index) => (
+                  <TodoListItem
+                    key={`todo_item_${index}`}
+                    item={item}
+                    handleCheckChange={this.handleCheckChange}
+                    isSelected={
+                      loading ? selectedItems.includes(item.id) : false
+                    }
+                  />
+                ))
+              ) : (
+                <div className="loading" />
+              )}
+            </Row>
+          </Colxx>
+        </Row>
+        {loading && <TodoApplicationMenu />}
+        <AddNewTodoModal toggleModal={this.toggleModal} modalOpen={modalOpen} />
+      </Fragment>
+    );
+  }
+}
 const mapStateToProps = ({ todoApp }) => {
-  const {
-    todoItems,
-    searchKeyword,
-    loading,
-    orderColumn,
-    orderColumns,
-    selectedItems,
-  } = todoApp;
   return {
-    todoItems,
-    searchKeyword,
-    loading,
-    orderColumn,
-    orderColumns,
-    selectedItems,
+    todoApp
   };
 };
 export default injectIntl(
-  connect(mapStateToProps, {
-    getTodoListAction: getTodoList,
-    getTodoListWithOrderAction: getTodoListWithOrder,
-    getTodoListSearchAction: getTodoListSearch,
-    selectedTodoItemsChangeAction: selectedTodoItemsChange,
-  })(TodoApp)
+  connect(
+    mapStateToProps,
+    {
+      getTodoList,
+      getTodoListWithOrder,
+      getTodoListSearch,
+      selectedTodoItemsChange
+    }
+  )(TodoApp)
 );

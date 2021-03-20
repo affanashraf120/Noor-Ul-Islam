@@ -1,24 +1,23 @@
-import React, { useEffect } from 'react';
+import React, { Component, Fragment } from "react";
 
-const UserLayout = ({ children }) => {
-  useEffect(() => {
-    document.body.classList.add('background');
-    document.body.classList.add('no-footer');
+class UserLayout extends Component {
+  componentDidMount() {
+    document.body.classList.add("background");
+  }
+  componentWillUnmount() {
+    document.body.classList.remove("background");
+  }
 
-    return () => {
-      document.body.classList.remove('background');
-      document.body.classList.remove('no-footer');
-    };
-  }, []);
-
-  return (
-    <>
-      <div className="fixed-background" />
-      <main>
-        <div className="container">{children}</div>
-      </main>
-    </>
-  );
-};
+  render() {
+    return (
+      <Fragment>
+        <div className="fixed-background" />
+        <main>
+          <div className="container">{this.props.children}</div>
+        </main>
+      </Fragment>
+    );
+  }
+}
 
 export default UserLayout;

@@ -1,4 +1,4 @@
-import Notifications from './Notifications';
+import Notifications from './Notifications.js';
 import NotificationContainer from './NotificationContainer';
 import NotificationManager from './NotificationManager';
 

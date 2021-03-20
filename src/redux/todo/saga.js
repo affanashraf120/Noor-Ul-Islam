@@ -1,16 +1,16 @@
-import { all, call, fork, put, takeEvery } from 'redux-saga/effects';
-import { getDateWithFormat } from '../../helpers/Utils';
+import { all, call, fork, put, takeEvery } from "redux-saga/effects";
+import { getDateWithFormat } from "../../helpers/Utils";
 
-import { TODO_GET_LIST, TODO_ADD_ITEM } from '../actions';
+import { TODO_GET_LIST, TODO_ADD_ITEM } from "../actions";
 
 import {
   getTodoListSuccess,
   getTodoListError,
   addTodoItemSuccess,
-  addTodoItemError,
-} from './actions';
+  addTodoItemError
+} from "./actions";
 
-import todoData from '../../data/todos.json';
+import todoData from "../../data/todos.json";
 
 const getTodoListRequest = async () => {
   return await new Promise((success, fail) => {
@@ -18,8 +18,8 @@ const getTodoListRequest = async () => {
       success(todoData.data);
     }, 1000);
   })
-    .then((response) => response)
-    .catch((error) => error);
+    .then(response => response)
+    .catch(error => error);
 };
 
 function* getTodoListItems() {
@@ -31,8 +31,8 @@ function* getTodoListItems() {
   }
 }
 
-const addTodoItemRequest = async (item) => {
-  const items = todoData.data;
+const addTodoItemRequest = async item => {
+  let items = todoData.data;
   item.id = items.length + 1;
   item.createDate = getDateWithFormat();
   items.splice(0, 0, item);
@@ -41,8 +41,8 @@ const addTodoItemRequest = async (item) => {
       success(items);
     }, 1000);
   })
-    .then((response) => response)
-    .catch((error) => error);
+    .then(response => response)
+    .catch(error => error);
 };
 
 function* addTodoItem({ payload }) {
